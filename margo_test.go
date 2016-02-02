@@ -1,4 +1,4 @@
-package markov
+package margo
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -8,7 +8,7 @@ import (
 func TestBuildChainSetSize(t *testing.T) {
 
 	lines := []string {"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	chainSet := BuildChainSet(lines, 2)
 
 	assert.Equal(t, 5, len(chainSet.Chains), "Number of chains should be 5")
 }
@@ -16,7 +16,7 @@ func TestBuildChainSetSize(t *testing.T) {
 func TestBuildChainSetChainCount(t *testing.T) {
 
 	lines := []string {"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	chainSet := BuildChainSet(lines, 2)
 
 	assert.Equal(t, 2, len(chainSet.Chains["And the"]), "Number of chains with key 'And the' should be 2")
 }
@@ -24,7 +24,7 @@ func TestBuildChainSetChainCount(t *testing.T) {
 func TestLookupChainWithMatchingKey(t *testing.T) {
 
 	lines := []string {"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	chainSet := BuildChainSet(lines, 2)
 
 	assert.Equal(t, 2, len(chainSet.lookupChains("And the")), "Find chains with matching key")
 }
@@ -32,7 +32,7 @@ func TestLookupChainWithMatchingKey(t *testing.T) {
 func TestLookupChainWithoutMatchingKey(t *testing.T) {
 
 	lines := []string {"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	chainSet := BuildChainSet(lines, 2)
 
 	assert.Equal(t, 0, len(chainSet.lookupChains("Grouse who")), "Do not find chains when no matching key")
 }

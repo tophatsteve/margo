@@ -1,4 +1,4 @@
-package markov
+package margo
 
 import (
 	"time"
