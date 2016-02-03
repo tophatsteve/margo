@@ -4,8 +4,19 @@ import (
 	"os"
 	"bufio"    
 	"log"
-	"github.com/tophatsteve/margo/margo"
+    "flag"
+	"github.com/tophatsteve/margo"
 )
+
+var filename string
+var prefixLength int
+
+func init() {
+    flag.StringVar(&filename, "filename", "", "The file containing lines of sample text")
+    flag.StringVar(&filename, "f", "", "The file containing lines of sample text")
+    flag.IntVar(&prefixLength, "prefix", 2, "The chain prefi length")
+    flag.IntVar(&prefixLength, "p", 2, "The chain prefix length")
+}
 
 func loadLines(filename string) []string {
   lines := []string{}	
@@ -20,8 +31,6 @@ func loadLines(filename string) []string {
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
 		lines = append(lines, scanner.Text())
-		// convert to lowecase
-		// remove punctuation
     }
 
     // check for errors
@@ -37,6 +46,7 @@ func loadLines(filename string) []string {
 }
 
 func main() {
-    lines := loadLines("./data/test.txt")
-	log.Printf("%s", margo.GenerateSentence(lines, 2, 140))	
+    flag.Parse()
+    lines := loadLines(filename)
+	log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140))	
 }
