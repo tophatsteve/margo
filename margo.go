@@ -23,13 +23,13 @@ type ChainSet struct {
 }
 
 // ToStringPrefix is
-func (c Chain) ToStringPrefix() string {
+func (c Chain) toStringPrefix() string {
 	return strings.Join(c.Prefix, " ")
 }
 
 // ToString is
-func (c Chain) ToString() string {
-	return fmt.Sprint(c.ToStringPrefix(), " ", c.Suffix)
+func (c Chain) toString() string {
+	return fmt.Sprint(c.toStringPrefix(), " ", c.Suffix)
 }
 
 func (c Chain) buildNextLookupKey() string {
@@ -89,7 +89,7 @@ func (cs ChainSet) pickNextChain(c Chain) Chain {
 
 func dumpChains(chains []Chain) {
 	for _, v := range chains {
-		log.Printf("%s", v.ToString())
+		log.Printf("%s", v.toString())
 	}
 }
 
@@ -109,10 +109,10 @@ func BuildChainSet(lines []string, prefixSize int) ChainSet {
 	for x := 0; x < len(lines); x++ {
 		chains := <-msg
 		for _, v := range chains {
-			if _, ok := chainSet.Chains[v.ToStringPrefix()]; !ok {
-				chainSet.Chains[v.ToStringPrefix()] = []Chain{}
+			if _, ok := chainSet.Chains[v.toStringPrefix()]; !ok {
+				chainSet.Chains[v.toStringPrefix()] = []Chain{}
 			}
-			chainSet.Chains[v.ToStringPrefix()] = append(chainSet.Chains[v.ToStringPrefix()], v)
+			chainSet.Chains[v.toStringPrefix()] = append(chainSet.Chains[v.toStringPrefix()], v)
 		}
 	}
 	return chainSet
@@ -121,7 +121,7 @@ func BuildChainSet(lines []string, prefixSize int) ChainSet {
 // BuildSentence is
 func BuildSentence(chainset ChainSet, maxLength int) string {
 	c1 := chainset.pickFirstChain()
-	result := c1.ToString()
+	result := c1.toString()
 	for len(c1.Suffix) > 0 {
 		c1 = chainset.pickNextChain(c1)
 		result = fmt.Sprint(result, " ", c1.Suffix)

@@ -4,7 +4,7 @@ import (
 	"os"
 	"bufio"    
 	"log"
-    "flag"
+    flag "launchpad.net/gnuflag"
 	"github.com/tophatsteve/margo"
 )
 
@@ -46,7 +46,7 @@ func loadLines(filename string) []string {
 }
 
 func main() {
-    flag.Parse()
+    flag.Parse(true)
     lines := loadLines(filename)
 	log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140))	
 }
