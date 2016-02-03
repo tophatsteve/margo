@@ -53,7 +53,7 @@ func TestChainToStringPrefix(t *testing.T) {
 	chain.Prefix = append(chain.Prefix, "the")
 	chain.Suffix = "Golden"
 
-	assert.Equal(t, "And the", chain.ToStringPrefix(), "Prefix should be all prefix words joined by a space")
+	assert.Equal(t, "And the", chain.toStringPrefix(), "Prefix should be all prefix words joined by a space")
 }
 
 func TestChainToString(t *testing.T) {
@@ -63,5 +63,5 @@ func TestChainToString(t *testing.T) {
 	chain.Prefix = append(chain.Prefix, "the")
 	chain.Suffix = "Golden"
 
-	assert.Equal(t, "And the Golden", chain.ToString(), "ToString should return all prefix words and suffix word joined by a space")
+	assert.Equal(t, "And the Golden", chain.toString(), "ToString should return all prefix words and suffix word joined by a space")
 }
