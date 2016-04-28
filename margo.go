@@ -1,5 +1,5 @@
 /*
-Package margo is
+Package margo is a Markov Chain generator.
 */
 package margo
 
@@ -9,25 +9,25 @@ import (
 	"strings"
 )
 
-// Chain is
+// Chain is a set of prefixes followed by a suffix.
 type Chain struct {
 	Prefix []string
 	Suffix string
 }
 
-// ChainSet is
+// ChainSet is a collection of Chains which also defines how long each prefix should be.
 type ChainSet struct {
 	Name         string
 	PrefixLength int
 	Chains       map[string][]Chain
 }
 
-// ToStringPrefix is
+// ToStringPrefix joins the words in a prefix into a single string.
 func (c Chain) toStringPrefix() string {
 	return strings.Join(c.Prefix, " ")
 }
 
-// ToString is
+// ToString converts a Chain into a single string.
 func (c Chain) toString() string {
 	return fmt.Sprint(c.toStringPrefix(), " ", c.Suffix)
 }
