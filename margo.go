@@ -1,5 +1,64 @@
 /*
-Package margo is a Markov Chain generator.
+	Package margo is a Markov Chain generator.
+
+	Example code:
+
+        package main
+
+        import (
+            "bufio"
+            "log"
+            "os"
+
+            "github.com/tophatsteve/margo"
+            flag "launchpad.net/gnuflag"
+        )
+
+        var filename string
+        var prefixLength int
+
+        func init() {
+            flag.StringVar(&filename, "filename", "", "The file containing lines of sample text")
+            flag.StringVar(&filename, "f", "", "The file containing lines of sample text")
+            flag.IntVar(&prefixLength, "prefix", 2, "The chain prefi length")
+            flag.IntVar(&prefixLength, "p", 2, "The chain prefix length")
+        }
+
+        // load lines from a file into a []string
+        func loadLines(filename string) []string {
+            lines := []string{}
+
+            // open a file
+            if file, err := os.Open(filename); err == nil {
+
+                // make sure it gets closed
+                defer file.Close()
+
+                // create a new scanner and read the file line by line
+                scanner := bufio.NewScanner(file)
+                for scanner.Scan() {
+                    lines = append(lines, scanner.Text())
+                }
+
+                // check for errors
+                if err = scanner.Err(); err != nil {
+                    log.Fatal(err)
+                }
+
+            } else {
+                log.Fatal(err)
+            }
+
+            return lines
+        }
+
+        func main() {
+            flag.Parse(true)
+            lines := loadLines(filename)
+            log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140))
+        }
+
+
 */
 package margo
 
@@ -10,95 +69,92 @@ import (
 )
 
 // Chain is a set of prefixes followed by a suffix.
-type Chain struct {
-	Prefix []string
-	Suffix string
+type chain struct {
+	prefix []string
+	suffix string
 }
 
 // ChainSet is a collection of Chains which also defines how long each prefix should be.
-type ChainSet struct {
-	Name         string
-	PrefixLength int
-	Chains       map[string][]Chain
+type chainSet struct {
+	name         string
+	prefixLength int
+	chains       map[string][]chain
 }
 
-// ToStringPrefix joins the words in a prefix into a single string.
-func (c Chain) toStringPrefix() string {
-	return strings.Join(c.Prefix, " ")
+func (c chain) toStringPrefix() string {
+	return strings.Join(c.prefix, " ")
 }
 
-// ToString converts a Chain into a single string.
-func (c Chain) toString() string {
-	return fmt.Sprint(c.toStringPrefix(), " ", c.Suffix)
+func (c chain) toString() string {
+	return fmt.Sprint(c.toStringPrefix(), " ", c.suffix)
 }
 
-func (c Chain) buildNextLookupKey() string {
-	words := make([]string, len(c.Prefix))
-	copy(words, c.Prefix)
+func (c chain) buildNextLookupKey() string {
+	words := make([]string, len(c.prefix))
+	copy(words, c.prefix)
 	if len(words) > 0 {
-		words = words[1:len(c.Prefix)]
+		words = words[1:len(c.prefix)]
 	}
-	words = append(words, c.Suffix)
+	words = append(words, c.suffix)
 
 	return strings.Join(words, " ")
 }
 
-func (cs ChainSet) lookupChains(prefix string) []Chain {
-	if val, ok := cs.Chains[prefix]; ok {
+func (cs chainSet) lookupChains(prefix string) []chain {
+	if val, ok := cs.chains[prefix]; ok {
 		return val
 	}
 
-	return []Chain{}
+	return []chain{}
 }
 
-func buildChainsFromLine(msg chan []Chain, line string, prefixSize int) {
-	chains := []Chain{}
+func buildChainsFromLine(msg chan []chain, line string, prefixSize int) {
+	chains := []chain{}
 	words := strings.Split(line, " ")
 
 	for i := 0; i < len(words)-prefixSize; i++ {
-		c := Chain{}
+		c := chain{}
 		for p := 0; p < prefixSize; p++ {
-			c.Prefix = append(c.Prefix, words[i+p])
+			c.prefix = append(c.prefix, words[i+p])
 		}
-		c.Suffix = words[i+prefixSize]
+		c.suffix = words[i+prefixSize]
 		chains = append(chains, c)
 	}
 
 	msg <- chains
 }
 
-func (cs ChainSet) pickFirstChain() Chain {
-	keys := make([]string, 0, len(cs.Chains))
-	for k := range cs.Chains {
+func (cs chainSet) pickFirstChain() chain {
+	keys := make([]string, 0, len(cs.chains))
+	for k := range cs.chains {
 		keys = append(keys, k)
 	}
 
-	firstChainValue := cs.Chains[keys[randomNumber(len(keys))]]
+	firstChainValue := cs.chains[keys[randomNumber(len(keys))]]
 	return firstChainValue[randomNumber(len(firstChainValue))]
 }
 
-func (cs ChainSet) pickNextChain(c Chain) Chain {
+func (cs chainSet) pickNextChain(c chain) chain {
 	chains := cs.lookupChains(c.buildNextLookupKey())
 
 	if len(chains) == 0 {
-		return Chain{}
+		return chain{}
 	}
 
 	return chains[randomNumber(len(chains))]
 }
 
-func dumpChains(chains []Chain) {
+func dumpChains(chains []chain) {
 	for _, v := range chains {
 		log.Printf("%s", v.toString())
 	}
 }
 
-// BuildChainSet is
-func BuildChainSet(lines []string, prefixSize int) ChainSet {
-	chainSet := ChainSet{}
-	chainSet.PrefixLength = prefixSize
-	chainSet.Chains = make(map[string][]Chain)
-	msg := make(chan []Chain)
+func buildChainSet(lines []string, prefixSize int) chainSet {
+	chainSet := chainSet{}
+	chainSet.prefixLength = prefixSize
+	chainSet.chains = make(map[string][]chain)
+	msg := make(chan []chain)
 
 	defer close(msg)
 
@@ -109,29 +165,34 @@ func BuildChainSet(lines []string, prefixSize int) ChainSet {
 	for x := 0; x < len(lines); x++ {
 		chains := <-msg
 		for _, v := range chains {
-			if _, ok := chainSet.Chains[v.toStringPrefix()]; !ok {
-				chainSet.Chains[v.toStringPrefix()] = []Chain{}
+			if _, ok := chainSet.chains[v.toStringPrefix()]; !ok {
+				chainSet.chains[v.toStringPrefix()] = []chain{}
 			}
-			chainSet.Chains[v.toStringPrefix()] = append(chainSet.Chains[v.toStringPrefix()], v)
+			chainSet.chains[v.toStringPrefix()] = append(chainSet.chains[v.toStringPrefix()], v)
 		}
 	}
 	return chainSet
 }
 
-// BuildSentence is
-func BuildSentence(chainset ChainSet, maxLength int) string {
+func buildSentence(chainset chainSet, maxLength int) string {
 	c1 := chainset.pickFirstChain()
 	result := c1.toString()
-	for len(c1.Suffix) > 0 {
+	for len(c1.suffix) > 0 {
 		c1 = chainset.pickNextChain(c1)
-		result = fmt.Sprint(result, " ", c1.Suffix)
+
+		if len(result)+len(c1.suffix) > maxLength {
+			break
+		}
+
+		result = fmt.Sprint(result, " ", c1.suffix)
 	}
 
-	return result    
+	return result
 }
 
-// GenerateSentence is
+// GenerateSentence is used to generate a sentence from a set of strings, upto a maximum length.
+// prefixSize specifies how long the prefix should be in each chain.
 func GenerateSentence(lines []string, prefixSize int, maxLength int) string {
-	chainset := BuildChainSet(lines, prefixSize)
-    return BuildSentence(chainset, maxLength)
+	chainset := buildChainSet(lines, prefixSize)
+	return buildSentence(chainset, maxLength)
 }

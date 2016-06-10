@@ -1,52 +1,54 @@
 package main
 
 import (
-	"os"
-	"bufio"    
+	"bufio"
 	"log"
-    flag "launchpad.net/gnuflag"
+	"os"
+
 	"github.com/tophatsteve/margo"
+	flag "launchpad.net/gnuflag"
 )
 
 var filename string
 var prefixLength int
 
 func init() {
-    flag.StringVar(&filename, "filename", "", "The file containing lines of sample text")
-    flag.StringVar(&filename, "f", "", "The file containing lines of sample text")
-    flag.IntVar(&prefixLength, "prefix", 2, "The chain prefi length")
-    flag.IntVar(&prefixLength, "p", 2, "The chain prefix length")
+	flag.StringVar(&filename, "filename", "", "The file containing lines of sample text")
+	flag.StringVar(&filename, "f", "", "The file containing lines of sample text")
+	flag.IntVar(&prefixLength, "prefix", 2, "The chain prefi length")
+	flag.IntVar(&prefixLength, "p", 2, "The chain prefix length")
 }
 
+// load lines from a file into a []string
 func loadLines(filename string) []string {
-  lines := []string{}	
-	
-  // open a file
-  if file, err := os.Open(filename); err == nil {
+	lines := []string{}
 
-    // make sure it gets closed
-    defer file.Close()
+	// open a file
+	if file, err := os.Open(filename); err == nil {
 
-    // create a new scanner and read the file line by line
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-    }
+		// make sure it gets closed
+		defer file.Close()
 
-    // check for errors
-    if err = scanner.Err(); err != nil {
-      log.Fatal(err)
-    }
+		// create a new scanner and read the file line by line
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
 
-  } else {
-    log.Fatal(err)
-  }
-  
-  return lines	
+		// check for errors
+		if err = scanner.Err(); err != nil {
+			log.Fatal(err)
+		}
+
+	} else {
+		log.Fatal(err)
+	}
+
+	return lines
 }
 
 func main() {
-    flag.Parse(true)
-    lines := loadLines(filename)
-	log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140))	
+	flag.Parse(true)
+	lines := loadLines(filename)
+	log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140))
 }
