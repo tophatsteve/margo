@@ -1,5 +1,4 @@
-/*
-	Package margo is a Markov Chain generator.
+/*Package margo is a Markov Chain generator.
 
 	Example code:
 
@@ -55,7 +54,7 @@
         func main() {
             flag.Parse(true)
             lines := loadLines(filename)
-            log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140))
+            log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140, true))
         }
 
 
@@ -124,14 +123,23 @@ func buildChainsFromLine(msg chan []chain, line string, prefixSize int) {
 	msg <- chains
 }
 
-func (cs chainSet) pickFirstChain() chain {
+func (cs chainSet) pickFirstChain(capitalStart bool) chain {
 	keys := make([]string, 0, len(cs.chains))
 	for k := range cs.chains {
 		keys = append(keys, k)
 	}
 
-	firstChainValue := cs.chains[keys[randomNumber(len(keys))]]
-	return firstChainValue[randomNumber(len(firstChainValue))]
+	for {
+		firstChainValue := cs.chains[keys[randomNumber(len(keys))]]
+		randomChain := firstChainValue[randomNumber(len(firstChainValue))]
+		if capitalStart == false {
+			return randomChain
+		}
+
+		if isUppercase(randomChain.prefix[0], 0) {
+			return randomChain
+		}
+	}
 }
 
 func (cs chainSet) pickNextChain(c chain) chain {
@@ -174,13 +182,13 @@ func buildChainSet(lines []string, prefixSize int) chainSet {
 	return chainSet
 }
 
-func buildSentence(chainset chainSet, maxLength int) string {
-	c1 := chainset.pickFirstChain()
+func buildSentence(chainset chainSet, maxLength int, capitalStart bool) string {
+	c1 := chainset.pickFirstChain(capitalStart)
 	result := c1.toString()
 	for len(c1.suffix) > 0 {
 		c1 = chainset.pickNextChain(c1)
 
-		if len(result)+len(c1.suffix) > maxLength {
+		if string(result[len(result)-1]) == "." || len(result)+len(c1.suffix) > maxLength {
 			break
 		}
 
@@ -192,7 +200,9 @@ func buildSentence(chainset chainSet, maxLength int) string {
 
 // GenerateSentence is used to generate a sentence from a set of strings, upto a maximum length.
 // prefixSize specifies how long the prefix should be in each chain.
-func GenerateSentence(lines []string, prefixSize int, maxLength int) string {
+// capitalStart indicates whether the first word of the sentence should be chosen from a prefix
+// with an upper case letter.
+func GenerateSentence(lines []string, prefixSize, maxLength int, capitalStart bool) string {
 	chainset := buildChainSet(lines, prefixSize)
-	return buildSentence(chainset, maxLength)
+	return buildSentence(chainset, maxLength, capitalStart)
 }
