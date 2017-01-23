@@ -1,64 +1,6 @@
 /*Package margo is a Markov Chain generator.
 
-	Example code:
-
-        package main
-
-        import (
-            "bufio"
-            "log"
-            "os"
-
-            "github.com/tophatsteve/margo"
-            flag "launchpad.net/gnuflag"
-        )
-
-        var filename string
-        var prefixLength int
-
-        func init() {
-            flag.StringVar(&filename, "filename", "", "The file containing lines of sample text")
-            flag.StringVar(&filename, "f", "", "The file containing lines of sample text")
-            flag.IntVar(&prefixLength, "prefix", 2, "The chain prefi length")
-            flag.IntVar(&prefixLength, "p", 2, "The chain prefix length")
-        }
-
-        // load lines from a file into a []string
-        func loadLines(filename string) []string {
-            lines := []string{}
-
-            // open a file
-            if file, err := os.Open(filename); err == nil {
-
-                // make sure it gets closed
-                defer file.Close()
-
-                // create a new scanner and read the file line by line
-                scanner := bufio.NewScanner(file)
-                for scanner.Scan() {
-                    lines = append(lines, scanner.Text())
-                }
-
-                // check for errors
-                if err = scanner.Err(); err != nil {
-                    log.Fatal(err)
-                }
-
-            } else {
-                log.Fatal(err)
-            }
-
-            return lines
-        }
-
-        func main() {
-            flag.Parse(true)
-            lines := loadLines(filename)
-            log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140, true))
-        }
-
-
-*/
+ */
 package margo
 
 import (
@@ -67,17 +9,49 @@ import (
 	"strings"
 )
 
-// Chain is a set of prefixes followed by a suffix.
+// chain is a set of prefixes followed by a suffix.
 type chain struct {
 	prefix []string
 	suffix string
 }
 
-// ChainSet is a collection of Chains which also defines how long each prefix should be.
-type chainSet struct {
+// Margo is a collection of chains which also defines how long each prefix should be.
+type Margo struct {
 	name         string
 	prefixLength int
 	chains       map[string][]chain
+}
+
+func NewMargo(lines []string, prefixSize int) Margo {
+	m := Margo{}
+	m.prefixLength = prefixSize
+	m.chains = make(map[string][]chain)
+	msg := make(chan []chain)
+
+	defer close(msg)
+
+	for _, v := range lines {
+		go buildChainsFromLine(msg, v, prefixSize)
+	}
+
+	for x := 0; x < len(lines); x++ {
+		chains := <-msg
+		for _, v := range chains {
+			if _, ok := m.chains[v.toStringPrefix()]; !ok {
+				m.chains[v.toStringPrefix()] = []chain{}
+			}
+			m.chains[v.toStringPrefix()] = append(m.chains[v.toStringPrefix()], v)
+		}
+	}
+	return m
+}
+
+// GenerateSentence generates a random sentence using the sentences in lines to build a Markov Chain.
+// The sentence is generated based on the size of the chain prefix, prefixSize, the maximum length of
+// the returned sentence, maxLength, and whether the sentence should start with a capital letter, capitalStart.
+func GenerateSentence(lines []string, prefixSize, maxLength int, capitalStart bool) string {
+	m := NewMargo(lines, prefixSize)
+	return m.buildSentence(maxLength, capitalStart)
 }
 
 func (c chain) toStringPrefix() string {
@@ -99,8 +73,8 @@ func (c chain) buildNextLookupKey() string {
 	return strings.Join(words, " ")
 }
 
-func (cs chainSet) lookupChains(prefix string) []chain {
-	if val, ok := cs.chains[prefix]; ok {
+func (m Margo) lookupChains(prefix string) []chain {
+	if val, ok := m.chains[prefix]; ok {
 		return val
 	}
 
@@ -123,14 +97,14 @@ func buildChainsFromLine(msg chan []chain, line string, prefixSize int) {
 	msg <- chains
 }
 
-func (cs chainSet) pickFirstChain(capitalStart bool) chain {
-	keys := make([]string, 0, len(cs.chains))
-	for k := range cs.chains {
+func (m Margo) pickFirstChain(capitalStart bool) chain {
+	keys := make([]string, 0, len(m.chains))
+	for k := range m.chains {
 		keys = append(keys, k)
 	}
 
 	for {
-		firstChainValue := cs.chains[keys[randomNumber(len(keys))]]
+		firstChainValue := m.chains[keys[randomNumber(len(keys))]]
 		randomChain := firstChainValue[randomNumber(len(firstChainValue))]
 		if capitalStart == false {
 			return randomChain
@@ -142,8 +116,8 @@ func (cs chainSet) pickFirstChain(capitalStart bool) chain {
 	}
 }
 
-func (cs chainSet) pickNextChain(c chain) chain {
-	chains := cs.lookupChains(c.buildNextLookupKey())
+func (m Margo) pickNextChain(c chain) chain {
+	chains := m.lookupChains(c.buildNextLookupKey())
 
 	if len(chains) == 0 {
 		return chain{}
@@ -158,35 +132,11 @@ func dumpChains(chains []chain) {
 	}
 }
 
-func buildChainSet(lines []string, prefixSize int) chainSet {
-	chainSet := chainSet{}
-	chainSet.prefixLength = prefixSize
-	chainSet.chains = make(map[string][]chain)
-	msg := make(chan []chain)
-
-	defer close(msg)
-
-	for _, v := range lines {
-		go buildChainsFromLine(msg, v, prefixSize)
-	}
-
-	for x := 0; x < len(lines); x++ {
-		chains := <-msg
-		for _, v := range chains {
-			if _, ok := chainSet.chains[v.toStringPrefix()]; !ok {
-				chainSet.chains[v.toStringPrefix()] = []chain{}
-			}
-			chainSet.chains[v.toStringPrefix()] = append(chainSet.chains[v.toStringPrefix()], v)
-		}
-	}
-	return chainSet
-}
-
-func buildSentence(chainset chainSet, maxLength int, capitalStart bool) string {
-	c1 := chainset.pickFirstChain(capitalStart)
+func (m Margo) buildSentence(maxLength int, capitalStart bool) string {
+	c1 := m.pickFirstChain(capitalStart)
 	result := c1.toString()
 	for len(c1.suffix) > 0 {
-		c1 = chainset.pickNextChain(c1)
+		c1 = m.pickNextChain(c1)
 
 		if string(result[len(result)-1]) == "." || len(result)+len(c1.suffix) > maxLength {
 			break
@@ -196,13 +146,4 @@ func buildSentence(chainset chainSet, maxLength int, capitalStart bool) string {
 	}
 
 	return result
-}
-
-// GenerateSentence is used to generate a sentence from a set of strings, upto a maximum length.
-// prefixSize specifies how long the prefix should be in each chain.
-// capitalStart indicates whether the first word of the sentence should be chosen from a prefix
-// with an upper case letter.
-func GenerateSentence(lines []string, prefixSize, maxLength int, capitalStart bool) string {
-	chainset := buildChainSet(lines, prefixSize)
-	return buildSentence(chainset, maxLength, capitalStart)
 }

@@ -65,4 +65,5 @@ func TestChainToString(t *testing.T) {
 	chain.suffix = "Golden"
 
 	assert.Equal(t, "And the Golden", chain.toString(), "ToString should return all prefix words and suffix word joined by a space")
+
 }
