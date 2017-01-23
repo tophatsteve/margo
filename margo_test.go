@@ -9,33 +9,33 @@ import (
 func TestBuildChainSetSize(t *testing.T) {
 
 	lines := []string{"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	m := NewMargo(lines, 2)
 
-	assert.Equal(t, 5, len(chainSet.chains), "Number of chains should be 5")
+	assert.Equal(t, 5, len(m.chains), "Number of chains should be 5")
 }
 
 func TestBuildChainSetChainCount(t *testing.T) {
 
 	lines := []string{"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	m := NewMargo(lines, 2)
 
-	assert.Equal(t, 2, len(chainSet.chains["And the"]), "Number of chains with key 'And the' should be 2")
+	assert.Equal(t, 2, len(m.chains["And the"]), "Number of chains with key 'And the' should be 2")
 }
 
 func TestLookupChainWithMatchingKey(t *testing.T) {
 
 	lines := []string{"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	m := NewMargo(lines, 2)
 
-	assert.Equal(t, 2, len(chainSet.lookupChains("And the")), "Find chains with matching key")
+	assert.Equal(t, 2, len(m.lookupChains("And the")), "Find chains with matching key")
 }
 
 func TestLookupChainWithoutMatchingKey(t *testing.T) {
 
 	lines := []string{"And the Golden Grouse And the Pobble who"}
-	chainSet := buildChainSet(lines, 2)
+	m := NewMargo(lines, 2)
 
-	assert.Equal(t, 0, len(chainSet.lookupChains("Grouse who")), "Do not find chains when no matching key")
+	assert.Equal(t, 0, len(m.lookupChains("Grouse who")), "Do not find chains when no matching key")
 }
 
 func TestBuildLookupKey(t *testing.T) {

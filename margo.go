@@ -22,6 +22,8 @@ type Margo struct {
 	chains       map[string][]chain
 }
 
+// NewMargo creates a new Margo instance from the passed in lines and builds
+// a set of Markov Chains with a prefix length of prefixSize.
 func NewMargo(lines []string, prefixSize int) Margo {
 	m := Margo{}
 	m.prefixLength = prefixSize
@@ -46,7 +48,7 @@ func NewMargo(lines []string, prefixSize int) Margo {
 	return m
 }
 
-// GenerateSentence generates a random sentence using the sentences in lines to build a Markov Chain.
+// GenerateSentence generates a random sentence using the sentences in lines to build a set of Markov Chains.
 // The sentence is generated based on the size of the chain prefix, prefixSize, the maximum length of
 // the returned sentence, maxLength, and whether the sentence should start with a capital letter, capitalStart.
 func GenerateSentence(lines []string, prefixSize, maxLength int, capitalStart bool) string {
