@@ -1,6 +1,4 @@
-/*Package margo is a Markov Chain generator.
-
- */
+//Package margo is a Markov Chain generator.
 package margo
 
 import (
@@ -48,55 +46,12 @@ func NewMargo(lines []string, prefixSize int) Margo {
 	return m
 }
 
-// GenerateSentence generates a random sentence using the sentences in lines to build a set of Markov Chains.
-// The sentence is generated based on the size of the chain prefix, prefixSize, the maximum length of
-// the returned sentence, maxLength, and whether the sentence should start with a capital letter, capitalStart.
-func GenerateSentence(lines []string, prefixSize, maxLength int, capitalStart bool) string {
-	m := NewMargo(lines, prefixSize)
+// GenerateSentence generates a random sentence no bigger than maxLength. If maxLength is 0,
+// then there is no limit on the length of sentence. If capitalStart is set to true then
+// the sentence will begin with a word that starts with a capital letter in the set of lines used
+// to when this Margo instance was created by a call to NewMargo.
+func (m Margo) GenerateSentence(maxLength int, capitalStart bool) string {
 	return m.buildSentence(maxLength, capitalStart)
-}
-
-func (c chain) toStringPrefix() string {
-	return strings.Join(c.prefix, " ")
-}
-
-func (c chain) toString() string {
-	return fmt.Sprint(c.toStringPrefix(), " ", c.suffix)
-}
-
-func (c chain) buildNextLookupKey() string {
-	words := make([]string, len(c.prefix))
-	copy(words, c.prefix)
-	if len(words) > 0 {
-		words = words[1:len(c.prefix)]
-	}
-	words = append(words, c.suffix)
-
-	return strings.Join(words, " ")
-}
-
-func (m Margo) lookupChains(prefix string) []chain {
-	if val, ok := m.chains[prefix]; ok {
-		return val
-	}
-
-	return []chain{}
-}
-
-func buildChainsFromLine(msg chan []chain, line string, prefixSize int) {
-	chains := []chain{}
-	words := strings.Split(line, " ")
-
-	for i := 0; i < len(words)-prefixSize; i++ {
-		c := chain{}
-		for p := 0; p < prefixSize; p++ {
-			c.prefix = append(c.prefix, words[i+p])
-		}
-		c.suffix = words[i+prefixSize]
-		chains = append(chains, c)
-	}
-
-	msg <- chains
 }
 
 func (m Margo) pickFirstChain(capitalStart bool) chain {
@@ -128,19 +83,20 @@ func (m Margo) pickNextChain(c chain) chain {
 	return chains[randomNumber(len(chains))]
 }
 
-func dumpChains(chains []chain) {
-	for _, v := range chains {
-		log.Printf("%s", v.toString())
-	}
-}
-
 func (m Margo) buildSentence(maxLength int, capitalStart bool) string {
 	c1 := m.pickFirstChain(capitalStart)
 	result := c1.toString()
 	for len(c1.suffix) > 0 {
 		c1 = m.pickNextChain(c1)
 
-		if string(result[len(result)-1]) == "." || len(result)+len(c1.suffix) > maxLength {
+		// if the last character is a period, the sentence is complete
+		if string(result[len(result)-1]) == "." {
+			break
+		}
+
+		// if we have set a max length, and adding the latest suffix will make
+		// the sentence bigger than the max length, the sentence is complete
+		if maxLength > 0 && len(result)+len(c1.suffix) > maxLength {
 			break
 		}
 
@@ -148,4 +104,53 @@ func (m Margo) buildSentence(maxLength int, capitalStart bool) string {
 	}
 
 	return result
+}
+
+func (m Margo) lookupChains(prefix string) []chain {
+	if val, ok := m.chains[prefix]; ok {
+		return val
+	}
+
+	return []chain{}
+}
+
+func (c chain) toStringPrefix() string {
+	return strings.Join(c.prefix, " ")
+}
+
+func (c chain) toString() string {
+	return fmt.Sprint(c.toStringPrefix(), " ", c.suffix)
+}
+
+func (c chain) buildNextLookupKey() string {
+	words := make([]string, len(c.prefix))
+	copy(words, c.prefix)
+	if len(words) > 0 {
+		words = words[1:len(c.prefix)]
+	}
+	words = append(words, c.suffix)
+
+	return strings.Join(words, " ")
+}
+
+func buildChainsFromLine(msg chan []chain, line string, prefixSize int) {
+	chains := []chain{}
+	words := strings.Split(line, " ")
+
+	for i := 0; i < len(words)-prefixSize; i++ {
+		c := chain{}
+		for p := 0; p < prefixSize; p++ {
+			c.prefix = append(c.prefix, words[i+p])
+		}
+		c.suffix = words[i+prefixSize]
+		chains = append(chains, c)
+	}
+
+	msg <- chains
+}
+
+func dumpChains(chains []chain) {
+	for _, v := range chains {
+		log.Printf("%s", v.toString())
+	}
 }
