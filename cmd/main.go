@@ -50,5 +50,6 @@ func loadLines(filename string) []string {
 func main() {
 	flag.Parse(true)
 	lines := loadLines(filename)
-	log.Printf("%s", margo.GenerateSentence(lines, prefixLength, 140, true))
+	m := margo.NewMargo(lines, prefixLength)
+	log.Printf("%s", m.GenerateSentence(140, true))
 }
